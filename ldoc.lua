@@ -63,6 +63,7 @@ ldoc, a documentation generator for Lua, vs ]]..version..[[
   -M,--merge allow module merging
   -S,--simple no return or params, no summary
   -O,--one one-column output layout
+  -T,--toctree (default 'Table of contents') rst toctree header
   --date (default system) use this date in generated doc
   --dump                debug output dump
   --filter (default none) filter output as Lua data (e.g pl.pretty.dump)
@@ -231,7 +232,7 @@ end
 
 local ldoc_contents = {
    'alias','add_language_extension','custom_tags','new_type','add_section', 'tparam_alias',
-   'file','project','title','package','format','output','dir','ext', 'topics',
+   'file','project','title','package','format','output','dir','ext', 'topics', 'type',
    'one','style','template','description','examples', 'pretty', 'charset', 'plain',
    'readme','all','manual_url', 'ignore', 'colon', 'sort', 'module_file','vars',
    'boilerplate','merge', 'wrap', 'not_luadoc', 'template_escape','merge_error_groups',
@@ -239,9 +240,10 @@ local ldoc_contents = {
    'no_space_before_args','parse_extra','no_lua_ref','sort_modules','use_markdown_titles',
    'unqualified', 'custom_display_name_handler', 'kind_names', 'custom_references',
    'dont_escape_underscore','global_lookup','prettify_files','convert_opt', 'user_keywords',
-   'postprocess_html',
+   'postprocess_html', 'toctree',
    'custom_css','version',
-   'no_args_infer'
+   'no_args_infer',
+   'without_source'
 }
 ldoc_contents = tablex.makeset(ldoc_contents)
 
@@ -489,9 +491,9 @@ elseif path.isdir(args.file) then
          end
       end
    end
-
-   process_all_files({args.file})
-
+   if not ldoc.without_source then
+     process_all_files({args.file})
+   end
 elseif path.isfile(args.file) then
    -- a single file may be accompanied by a config.ld in the same dir
    if not config_dir then
@@ -503,7 +505,9 @@ elseif path.isfile(args.file) then
       end
    end
    process_file(args.file, file_list)
-   if #file_list == 0 then quit "unsupported file extension" end
+   if #file_list == 0 and not ldoc.without_source then
+      quit "unsupported file extension"
+   end
 else
    quit ("file or directory does not exist: "..quote(args.file))
 end
@@ -511,7 +515,14 @@ end
 
 -- create the function that renders text (descriptions and summaries)
 -- (this also will initialize the code prettifier used)
-override ('format','plain')
+if args.ext == "rst" then
+   args.format = "rst"
+   ldoc.rst = true
+   ldoc.dont_escape_underscore = true
+else
+   override ('format','plain')
+end
+
 override 'pretty'
 ldoc.markup = markup.create(ldoc, args.format, args.pretty, ldoc.user_keywords)
 
@@ -709,6 +720,7 @@ end
 override ('output','index')
 override ('dir','doc')
 override ('ext','html')
+override ('toctree','Table of contents')
 override 'one'
 
 -- handling styling and templates --
@@ -760,6 +772,24 @@ end
 -- containing config.ld contains a ldoc.css and a ldoc.ltp respectively. Otherwise
 -- they must be a valid subdirectory.
 
+local function load_output_generator (output_format)
+   local loaded, gen
+   if output_format == "rst" then
+      loaded, gen = pcall(function() return require 'ldoc.rst' end)
+      args.format = 'plain'
+   elseif output_format == "html" then
+      loaded, gen = pcall(function() return require 'ldoc.html' end)
+   end
+   if loaded then
+      return gen
+   else
+      print(("Format %s is not supported"):format(output_format))
+      os.exit(1)
+   end
+end
+
+local output_gen = load_output_generator(args.ext)
+
 style_dir 'style'
 style_dir 'template'
 
@@ -780,7 +810,7 @@ if builtin_style or builtin_template then
       lfs.mkdir(tmpdir)
    end
    local function tmpwrite (name)
-      local ok,text = pcall(require,'ldoc.html.'..name:gsub('%.','_'))
+      local ok,text = pcall(require,'ldoc'..args.ext..'.'..name:gsub('%.','_'))
       if not ok then
          quit("cannot find builtin template "..name.." ("..text..")")
       end
@@ -788,7 +818,7 @@ if builtin_style or builtin_template then
          quit("cannot write to temp directory "..tmpdir)
       end
    end
-   if builtin_style then
+   if args.ext ~= ".rst" and builtin_style then
       if builtin_style ~= '' then
          ldoc.css = 'ldoc_'..builtin_style..'.css'
       end
@@ -825,9 +855,12 @@ else
   ldoc.updatetime = os.date("!%Y-%m-%d %H:%M:%S",source_date_epoch)
 end
 
-local html = require 'ldoc.html'
-
-html.generate_output(ldoc, args, project)
+if output_gen ~= nil then
+   output_gen.generate_output(ldoc, args, project)
+else
+   print(args.ext .. " output format is not supported")
+   os.exit(1)
+end
 
 if args.verbose then
    print 'modules'

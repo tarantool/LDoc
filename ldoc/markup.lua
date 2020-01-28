@@ -15,54 +15,74 @@ local backtick_references
 -- inline <references> use same lookup as @see
 local function resolve_inline_references (ldoc, txt, item, plain)
    local do_escape = not plain and not ldoc.dont_escape_underscore
-   local res = (txt:gsub('@{([^}]-)}',function (name)
-      if name:match '^\\' then return '@{'..name:sub(2)..'}' end
-      local qname,label = utils.splitv(name,'%s*|')
+   local res = (txt:gsub('@{([^}]-)}', function(name)
+      if name:match '^\\' then
+         return '@{' .. name:sub(2) .. '}'
+      end
+      local qname, label = utils.splitv(name, '%s*|')
       if not qname then
          qname = name
       end
       local ref, err
-      local custom_ref, refname = utils.splitv(qname,':')
+      local custom_ref, refname = utils.splitv(qname, ':')
       if custom_ref and ldoc.custom_references then
          custom_ref = ldoc.custom_references[custom_ref]
          if custom_ref then
-            ref,err = custom_ref(refname)
+            ref, err = custom_ref(refname)
          end
       end
       if not ref then
-         ref,err = markup.process_reference(qname)
+         ref, err = markup.process_reference(qname)
       end
       if not ref then
          err = err .. ' ' .. qname
-         if item and item.warning then item:warning(err)
+         if item and item.warning then
+            item:warning(err)
          else
-           io.stderr:write('nofile error: ',err,'\n')
+            io.stderr:write('nofile error: ', err, '\n')
          end
          return '???'
       end
       if not label then
          label = ref.label
       end
-      if label and do_escape  then -- a nastiness with markdown.lua and underscores
-         label = label:gsub('_','\\_')
+      if label and do_escape then
+         -- a nastiness with markdown.lua and underscores
+         label = label:gsub('_', '\\_')
       end
       local html = ldoc.href(ref) or '#'
       label = ldoc.escape(label or qname)
-      local res = ('<a href="%s">%s</a>'):format(html,label)
+      local res
+      if ldoc.rst == true then
+         res = (':ref:`%s <%s>`'):format(label, html)
+      else
+         res = ('<a href="%s">%s</a>'):format(html, label)
+      end
+
       return res
    end))
-   if backtick_references then
-      res  = res:gsub('`([^`]+)`',function(name)
-         local ref,err = markup.process_reference(name)
+   if backtick_references and not res:match('<') and res:match('%.') then
+      res = res:gsub('`([^`]+)`', function(name)
+         local ref, err = markup.process_reference(name)
          local label = name
          if name and do_escape then
             label = name:gsub('_', '\\_')
          end
          label = ldoc.escape(label)
-         if ref then
-            return ('<a href="%s">%s</a>'):format(ldoc.href(ref),label)
+         if ldoc.rst == true then
+            if ref and not string.match(label, '%.') then
+               return (' ``%s`` '):format(label)
+            elseif ref then
+               return (':ref:`%s <%s>`'):format(label, label)
+            else
+               return (' ``%s`` '):format(label)
+            end
          else
-            return '<code>'..label..'</code>'
+            if ref then
+               return ('<a href="%s">%s</a>'):format(ldoc.href(ref), label)
+            else
+               return '<code>' .. label .. '</code>'
+            end
          end
       end)
    end
@@ -77,23 +97,23 @@ function markup.add_sections(F, txt)
    local lstrip = stringx.lstrip
    for line in stringx.lines(txt) do
       if first then
-         local level,header = line:match '^(#+)%s*(.+)'
+         local level, header = line:match '^(#+)%s*(.+)'
          if level then
             level = level .. '#'
          else
             level = '##'
          end
-         title_pat = '^'..level..'([^#]%s*.+)'
+         title_pat = '^' .. level .. '([^#]%s*.+)'
          title_pat = lstrip(title_pat)
          first = false
          F.display_name = header
       end
-      local title = line:match (title_pat)
+      local title = line:match(title_pat)
       if title then
          --- Windows line endings are the cockroaches of text
-         title = title:gsub('\r$','')
+         title = title:gsub('\r$', '')
          -- Markdown allows trailing '#'...
-         title = title:gsub('%s*#+$','')
+         title = title:gsub('%s*#+$', '')
          sections[L] = F:add_document_section(lstrip(title))
       end
       L = L + 1
@@ -103,9 +123,9 @@ function markup.add_sections(F, txt)
 end
 
 local function indent_line (line)
-   line = line:gsub('\t','    ') -- support for barbarians ;)
+   line = line:gsub('\t', '    ') -- support for barbarians ;)
    local indent = #line:match '^%s*'
-   return indent,line
+   return indent, line
 end
 
 local function blank (line)
@@ -123,8 +143,8 @@ local global_context, local_context
 local function process_multiline_markdown(ldoc, txt, F, filename, deflang)
    local res, L, append = {}, 0, table.insert
    local err_item = {
-      warning = function (self,msg)
-         io.stderr:write(filename..':'..L..': '..msg,'\n')
+      warning = function(self, msg)
+         io.stderr:write(filename .. ':' .. L .. ': ' .. msg, '\n')
       end
    }
    local get = stringx.lines(txt)
@@ -133,21 +153,23 @@ local function process_multiline_markdown(ldoc, txt, F, filename, deflang)
       return get()
    end
    local function pretty_code (code, lang)
-      code = concat(code,'\n')
+      code = concat(code, '\n')
       if code ~= '' then
          local err
          -- If we omit the following '\n', a '--' (or '//') comment on the
          -- last line won't be recognized.
-         code, err = prettify.code(lang,filename,code..'\n',L,false)
-         code = resolve_inline_references(ldoc, code, err_item,true)
-         append(res,'<pre>')
+         if not ldoc.rst then
+            code, err = prettify.code(lang, filename, code .. '\n', L, false)
+         end
+         code = resolve_inline_references(ldoc, code, err_item, true)
+         append(res, '<pre>')
          append(res, code)
-         append(res,'</pre>')
+         append(res, '</pre>')
       else
-         append(res,code)
+         append(res, code)
       end
    end
-   local indent,start_indent
+   local indent, start_indent
    local_context = nil
    local line = getline()
    while line do
@@ -158,23 +180,26 @@ local function process_multiline_markdown(ldoc, txt, F, filename, deflang)
       end
       local fence = line:match '^```(.*)'
       if fence then
-         local plain = fence==''
+         local plain = fence == ''
          line = getline()
          local code = {}
          while not line:match '^```' do
             if not plain then
                append(code, line)
             else
-               append(res, '     '..line)
+               append(res, '     ' .. line)
             end
             line = getline()
          end
-         pretty_code (code,fence)
+         pretty_code(code, fence)
          line = getline() -- skip fence
-         if not line then break end
+         if not line then
+            break
+         end
       end
       indent, line = indent_line(line)
-      if indent >= 4 then -- indented code block
+      if indent >= 4 then
+         -- indented code block
          local code = {}
          local plain
          while indent >= 4 or blank(line) do
@@ -186,30 +211,33 @@ local function process_multiline_markdown(ldoc, txt, F, filename, deflang)
                end
             end
             if not plain then
-               append(code,line:sub(start_indent + 1))
+               append(code, line:sub(start_indent + 1))
             else
-               append(res,line)
+               append(res, line)
             end
             line = getline()
-            if line == nil then break end
+            if line == nil then
+               break
+            end
             indent, line = indent_line(line)
          end
          start_indent = nil
-         while #code > 1 and blank(code[#code]) do  -- trim blank lines.
-           table.remove(code)
+         while #code > 1 and blank(code[#code]) do
+            -- trim blank lines.
+            table.remove(code)
          end
-         pretty_code (code,deflang)
+         pretty_code(code, deflang)
       else
          local section = F and F.sections[L]
          if section then
-            append(res,('<a name="%s"></a>'):format(section))
+            append(res, ('<a name="%s"></a>'):format(section))
          end
          line = resolve_inline_references(ldoc, line, err_item)
-         append(res,line)
+         append(res, line)
          line = getline()
       end
    end
-   res = concat(res,'\n')
+   res = concat(res, '\n')
    return res
 end
 
@@ -223,9 +251,7 @@ local function generic_formatter(format)
    return ok and f
 end
 
-
-local formatters =
-{
+local formatters = {
    markdown = function(format)
       local ok, markdown = pcall(require, 'markdown')
       if not ok then
@@ -233,6 +259,11 @@ local formatters =
          ok, markdown = pcall(require, 'ldoc.markdown')
       end
       return ok and markdown
+   end,
+   rst = function(format)
+      print('format: using built-in rst')
+      local ok, rst = pcall(require, 'ldoc.rst_builder')
+      return ok and rst
    end,
    discount = function(format)
       local ok, markdown = pcall(require, 'discount')
@@ -253,7 +284,7 @@ local formatters =
                      return result.body
                   end
                else
-                  io.stderr:write('LDoc discount failed with error ',errmsg)
+                  io.stderr:write('LDoc discount failed with error ', errmsg)
                   io.exit(1)
                end
             end
@@ -272,21 +303,23 @@ local formatters =
       if ok then
          local writer = lunamark.writer.html.new()
          local parse = lunamark.reader.markdown.new(writer,
-                                                    { smart = true })
-         return function(text) return parse(text) end
+            { smart = true })
+         return function(text)
+            return parse(text)
+         end
       end
    end
 }
 
-
 local function get_formatter(format)
    local used_format = format
    local formatter = (formatters[format] or generic_formatter)(format)
-   if not formatter then -- try another equivalent processor
+   if not formatter then
+      -- try another equivalent processor
       for name, f in pairs(formatters) do
          formatter = f(name)
          if formatter then
-            print('format: '..format..' not found, using '..name)
+            print('format: ' .. format .. ' not found, using ' .. name)
             used_format = name
             break
          end
@@ -307,39 +340,43 @@ end
 local plain_processor
 
 local function markdown_processor(ldoc, formatter)
-   return function (txt,item,plain)
-      if txt == nil then return '' end
+   return function(txt, item, plain)
+      if txt == nil then
+         return ''
+      end
       if plain then
          if not plain_processor then
             plain_processor = text_processor(ldoc)
          end
-         return plain_processor(txt,item)
+         return plain_processor(txt, item)
       end
-      local is_file = utils.is_type(item,doc.File)
+      local is_file = utils.is_type(item, doc.File)
       local is_module = not file and item and doc.project_level(item.type)
       if is_file or is_module then
-        local deflang = 'lua'
-        if ldoc.parse_extra and ldoc.parse_extra.C then
+         local deflang = 'lua'
+         if ldoc.parse_extra and ldoc.parse_extra.C then
             deflang = 'c'
-        end
-        if is_module then
+         end
+         if is_module then
             txt = process_multiline_markdown(ldoc, txt, nil, item.file.filename, deflang)
-        else
+         else
             txt = process_multiline_markdown(ldoc, txt, item, item.filename, deflang)
-        end
+         end
       else
          txt = resolve_inline_references(ldoc, txt, item)
       end
       txt = formatter(txt)
       -- We will add our own paragraph tags, if needed.
-      return (txt:gsub('^%s*<p>(.+)</p>%s*$','%1'))
+      return (txt:gsub('^%s*<p>(.+)</p>%s*$', '%1'))
    end
 end
 
 local function get_processor(ldoc, format)
-   if format == 'plain' then return text_processor(ldoc) end
+   if format == 'plain' then
+      return text_processor(ldoc)
+   end
 
-   local formatter,actual_format = get_formatter(format)
+   local formatter, actual_format = get_formatter(format)
    if formatter then
       markup.plain = false
       -- AFAIK only markdown.lua has underscore-in-identifier problem...
@@ -349,10 +386,9 @@ local function get_processor(ldoc, format)
       return markdown_processor(ldoc, formatter)
    end
 
-   print('format: '..format..' not found, falling back to text')
+   print('format: ' .. format .. ' not found, falling back to text')
    return text_processor(ldoc)
 end
-
 
 function markup.create (ldoc, format, pretty, user_keywords)
    local processor
@@ -366,25 +402,31 @@ function markup.create (ldoc, format, pretty, user_keywords)
    prettify.set_prettifier(pretty)
    prettify.set_user_keywords(user_keywords)
 
-   markup.process_reference = function(name,istype)
+   markup.process_reference = function(name, istype)
       if local_context == 'none.' and not name:match '%.' then
-         return nil,'not found'
+         return nil, 'not found'
       end
       local mod = ldoc.single or ldoc.module or ldoc.modules[1]
-      local ref,err = mod:process_see_reference(name, ldoc.modules, istype)
-      if ref then return ref end
+      local ref, err = mod:process_see_reference(name, ldoc.modules, istype)
+      if ref then
+         return ref
+      end
       if global_context then
          local qname = global_context .. name
          ref = mod:process_see_reference(qname, ldoc.modules, istype)
-         if ref then return ref end
+         if ref then
+            return ref
+         end
       end
       if local_context then
          local qname = local_context .. name
          ref = mod:process_see_reference(qname, ldoc.modules, istype)
-         if ref then return ref end
+         if ref then
+            return ref
+         end
       end
       -- note that we'll return the original error!
-      return ref,err
+      return ref, err
    end
 
    markup.href = function(ref)

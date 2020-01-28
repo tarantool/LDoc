@@ -1,7 +1,7 @@
 local run
 if not arg[1] then
   run = function (dir)
-     local cmd = 'cd '..dir..' && ldoc --testing . && diff -r doc cdocs'
+     local cmd = 'cd '..dir..' && ldoc  --testing .  && diff -r doc cdocs'
      print(cmd) 
      os.execute(cmd)
   end
@@ -13,6 +13,12 @@ elseif arg[1] == 'update' then
    end
 end
 
-for _,d in ipairs{'tests','tests/example','tests/md-test'} do
+local test_dirs = {
+   'tests',
+   'tests/example',
+   'tests/md-test',
+}
+
+for _,d in ipairs(test_dirs) do
    run(d)
 end

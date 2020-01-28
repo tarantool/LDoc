@@ -1,0 +1,76 @@
+--- The abstraction, representing clusterwide configuration.
+--
+-- Clusterwide configuration is more than just a lua table. It's an
+-- object in terms of OOP paradigm.
+--
+-- On filesystem clusterwide config is represented by a file tree.
+--
+-- In Lua it's represented as an object which holds both plaintext files
+-- content and unmarshalled lua tables. Unmarshalling is implicit and
+-- performed automatically for the sections with `.yml` file extension.
+--
+-- To access plaintext content there are two functions: `get_plaintext`
+-- and `set_plaintext`.
+--
+-- Unmarshalled lua tables are accessed without `.yml` extension by
+-- `get_readonly` and `get_deepcopy`. Plaintext serves for
+-- accessing unmarshalled representation of corresponding sections.
+--
+-- To avoid ambiguity it's prohibited to keep both `<FILENAME>` and
+-- `<FILENAME>.yml` in the configuration. An attempt to do so would
+-- result in `return nil, err` from `new()` and `load()`, and an attempt
+-- to call `get_readonly/deepcopy` would raise an error.
+-- Nevertheless one can keep any other extensions because they aren't
+-- unmarshalled implicitly.
+--
+-- (**Added** in v1.2.0-17)
+--
+-- @usage
+-- tarantool> cfg = ClusterwideConfig.new({
+--          >     -- two files
+--          >     ['forex.yml'] = '{EURRUB_TOM: 70.33, USDRUB_TOM: 63.18}',
+--          >     ['text'] = 'Lorem ipsum dolor sit amet',
+--          > })
+-- ---
+-- ...
+--
+-- tarantool> cfg:get_plaintext()
+-- ---
+-- - text: Lorem ipsum dolor sit amet
+--   forex.yml: '{EURRUB_TOM: 70.33, USDRUB_TOM: 63.18}'
+-- ...
+--
+-- tarantool> cfg:get_readonly()
+-- ---
+-- - forex.yml: '{EURRUB_TOM: 70.33, USDRUB_TOM: 63.18}'
+--   forex:
+--     EURRUB_TOM: 70.33
+--     USDRUB_TOM: 63.18
+--   text: Lorem ipsum dolor sit amet
+-- ...
+--
+-- @module cartridge.clusterwide-config
+-- @local
+
+
+--- Create new object.
+-- @function new
+-- @tparam[opt] {string=string,...} data
+--   Plaintext content
+-- @treturn[1] ClusterwideConfig
+-- @treturn[2] nil
+-- @treturn[2] table Error description
+local function new(data)
+end
+
+--- Load old-style config from YAML file.
+--
+-- @function load_from_file
+-- @local
+-- @tparam string filename
+--   Filename to load.
+-- @treturn[1] ClusterwideConfig
+-- @treturn[2] nil
+-- @treturn[2] table Error description
+local function load_from_file(filename)
+end
