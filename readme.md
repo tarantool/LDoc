@@ -55,3 +55,27 @@ Or a batch file called 'ldoc.bat':
     @echo off
     lua \path\to\ldoc\ldoc.lua %*
 
+## Usage
+
+To create documentation run:
+```bash
+ldoc .
+```
+To use [reStructuredText](https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html) extension run:
+```bash
+ldoc --ext=rst .
+```
+
+## Tests
+
+To run tests use:
+
+```bash
+lua run-tests.lua
+```
+
+Or to run rst tests:
+
+```bash
+lua run-rst-tests.lua
+```
