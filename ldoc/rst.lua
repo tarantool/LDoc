@@ -111,7 +111,7 @@ local function md_2_rst(text)
 
    text = text:gsub("(\n[%+%*%-%d]%.? .-\n)(  +[%+%*%-%d])", md_2_rst_list)
    text = text:gsub("(\n%d+%..-\n)(  +[%+%*%-%d])", md_2_rst_list)
-   text = text:gsub("(\n  +[%+%*%-%d].-\n)([%+%*%-%d])", md_2_rst_list)
+   text = text:gsub("(\n  +[%+%*%-%d] .-\n)([%+%*%-%d] )", md_2_rst_list)
 
    -- clean html from the string
    for i=1, #cleaner do
@@ -120,6 +120,7 @@ local function md_2_rst(text)
    end
    --
    text = text:gsub("<a .-</a>", "")
+   text = text:gsub("<img .->", "")
    text = text:gsub("&mdash;", "—")
 
    return text
