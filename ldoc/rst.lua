@@ -105,11 +105,14 @@ local function md_2_rst(text)
 
    text = text:gsub("(%b[])(%b())", inline_link)
 
-   local function md_2_rst_list(md_list_item, md_sublist_item)
-      return md_list_item..""..md_sublist_item
+   local function md_2_rst_list(md_first_item, md_second_item)
+      return md_first_item.."\n"..md_second_item
    end
-   text = text:gsub("(\n[%+%*%-%d]%.? .-\n)( +[%+%*%-%d].-)", md_2_rst_list)
-   text = text:gsub("(\n%d+%..-\n)( +[%+%*%-%d])", md_2_rst_list)
+
+   text = text:gsub("(\n[%+%*%-%d]%.? .-\n)(  +[%+%*%-%d])", md_2_rst_list)
+   text = text:gsub("(\n%d+%..-\n)(  +[%+%*%-%d])", md_2_rst_list)
+   text = text:gsub("(\n  +[%+%*%-%d].-\n)([%+%*%-%d])", md_2_rst_list)
+
    -- clean html from the string
    for i=1, #cleaner do
       local cleans = cleaner[i]
