@@ -105,9 +105,9 @@ local function md_2_rst(text)
    text = text:gsub("(%b[])(%b())", inline_link)
 
    local function md_2_rst_list(md_list_item, md_sublist_item)
-      return md_list_item.."\n"..md_sublist_item
+      return md_list_item..""..md_sublist_item
    end
-   text = text:gsub("(\n[%+%*%-%d]%.? .-\n)( +[%+%*%-%d])", md_2_rst_list)
+   text = text:gsub("(\n[%+%*%-%d]%.? .-\n)( +[%+%*%-%d].-)", md_2_rst_list)
    text = text:gsub("(\n%d+%..-\n)( +[%+%*%-%d])", md_2_rst_list)
    -- clean html from the string
    for i=1, #cleaner do
@@ -362,7 +362,11 @@ function rst.generate_output(ldoc, args, project)
    if ldoc.module then
       ldoc.module.info = get_module_info(ldoc.module)
       ldoc.module.ldoc = ldoc
+      ldoc.body = ldoc.module.body
       save_and_set_ldoc(ldoc.module.tags.set)
+      if ldoc.body and ldoc.module.postprocess then
+         ldoc.body = md_2_rst(ldoc.body)
+      end
    end
    set_charset(ldoc)
    local out = templatize(module_template, ldoc, ldoc.module)

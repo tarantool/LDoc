@@ -3,17 +3,18 @@ local lfs = require('lfs')
 local codes = {reset = "\27[0m", red = "\27[31m", green = "\27[32m"}
 
 local test_dirs = {
-   'tests',
-   'tests/example',
-   'tests/md-test',
+   {'tests', '.'},
+   {'tests/example', '.'},
+   {'tests/md-test', '.'},
+   {'tests/from-md', '-f markdown README.md'}
 }
 
 local test_status = {}
 
-local run = function (dir)
+local run = function (dir, file)
    print("TESTING "..dir)
    local pwd = lfs.currentdir()
-   local cmd = 'cd '..dir..' &&  lua '..pwd..'/ldoc.lua --testing .  && diff -r doc cdocs'
+   local cmd = 'cd '..dir..' &&  lua '..pwd..'/ldoc.lua  --testing '..file..' && diff -r doc cdocs'
    print(cmd) 
    return os.execute(cmd)
 end
@@ -50,8 +51,8 @@ local after_all = function()
 end
 
 for _,d in ipairs(test_dirs) do
-   local rc = run(d)
-   after_each(d ,rc)
+   local rc = run(d[1], d[2])
+   after_each(d[1] ,rc)
 
 end
 

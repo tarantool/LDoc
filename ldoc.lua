@@ -473,6 +473,25 @@ local function process_all_files(files)
    if #file_list == 0 then quit "no source files found" end
 end
 
+-- process markdown file as main single module file
+local function process_markdown_file(file)
+   local F = File(file)
+   local tags =  { name = path.basename(file), class = "module" }
+   local text = utils.readfile(file)
+   local item = F:new_item(tags,1)
+   if markup.add_sections then
+      text = markup.add_sections(F, text)
+   end
+   F:finish()
+   file_list:append(F)
+
+   item.body = text
+   if ldoc.use_markdown_titles then
+      item.display_name = F.display_name
+   end
+   item.postprocess = function(txt) return ldoc.markup(txt,F) end
+end
+
 if type(args.file) == 'table' then
    -- this can only be set from config file so we can assume config is already read
    process_all_files(args.file)
@@ -505,6 +524,13 @@ elseif path.isfile(args.file) then
       end
    end
    process_file(args.file, file_list)
+
+   -- if markdown file was given we want to convert it to another format
+   if path.extension(args.file) == '.md' then
+      ldoc.without_source = true
+      process_markdown_file(args.file)
+   end
+
    if #file_list == 0 and not ldoc.without_source then
       quit "unsupported file extension"
    end

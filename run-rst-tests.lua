@@ -3,20 +3,23 @@ local lfs = require('lfs')
 local codes = {reset = "\27[0m", red = "\27[31m", green = "\27[32m"}
 
 local test_dirs = {
-   'tests/rst-tests/single',
+   {'tests/rst-tests/single', '.'},
+   {'tests/rst-tests/submodule', '.'},
+   {'tests/rst-tests/usage', '.'},
+   {'tests/rst-tests/annotation', '.'},
+   {'tests/rst-tests/from-md-simple', 'README.md'}
    -- Uncomment when @see tag will be implemented
-   -- 'tests/rst-tests/complex',
-   'tests/rst-tests/submodule',
-   'tests/rst-tests/usage',
-   'tests/rst-tests/annotation'
+   -- {'tests/rst-tests/complex', '.'},
+   -- Uncomment when md2rst will be fixed with refs
+   -- {'tests/rst-tests/from-md', 'README.md'},
 }
 
 local test_status = {}
 
-local run = function (dir)
+local run = function (dir, file)
    print("TESTING "..dir)
    local pwd = lfs.currentdir()
-   local cmd = 'cd '..dir..' &&  lua '..pwd..'/ldoc.lua --ext=rst --testing .  && diff -r doc cdocs'
+   local cmd = 'cd '..dir..' &&  lua '..pwd..'/ldoc.lua --ext=rst --testing '..file..' && diff -r doc cdocs'
    print(cmd) 
    return os.execute(cmd)
 end
@@ -54,8 +57,8 @@ local after_all = function()
 end
 
 for _,d in ipairs(test_dirs) do
-   local rc = run(d)
-   after_each(d ,rc)
+   local rc = run(d[1],d[2])
+   after_each(d[1], rc)
 end
 
 

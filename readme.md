@@ -66,6 +66,16 @@ To use [reStructuredText](https://docutils.sourceforge.io/docs/ref/rst/restructu
 ldoc --ext=rst .
 ```
 
+To convert markdown file to html one use:
+```bash
+ldoc -f markdown README.md -d . -o README
+```
+
+or reStructuredText
+```bash
+ldoc --ext=rst README.md -d . -o README
+```
+
 ## Tests
 
 To run tests use:

@@ -314,7 +314,11 @@ function ldoc.source_ref (fun)
    if ldoc.module then
       ldoc.module.info = get_module_info(ldoc.module)
       ldoc.module.ldoc = ldoc
+      ldoc.body = ldoc.module.body
       save_and_set_ldoc(ldoc.module.tags.set)
+      if ldoc.body and ldoc.module.postprocess then
+         ldoc.body = ldoc.module.postprocess(ldoc.body)
+      end
    end
    set_charset(ldoc)
    local out = templatize(module_template, ldoc, ldoc.module)
