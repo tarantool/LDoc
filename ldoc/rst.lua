@@ -75,13 +75,6 @@ local function get_module_info(m)
 end
 
 local function md_2_rst(text)
-   for header, sign in pairs({["^#"] = "=", ["\n#"] = "=", ["\n##"] = "-", ["\n###"] = "~", ["\n####"] = "^"}) do
-      local function rst_header(header)
-         local slug = ".. _#" .. header:lower():gsub(' ', '-') .. ':'
-         return "\n\n" .. string.rep(sign, 79).."\n".. header .."\n" .. string.rep(sign, 79) .. "\n\n"
-      end
-      text = text:gsub(header .. " (.-)[\r\n]", rst_header)
-   end
    local function tab_block(code_block)
       return code_block:gsub("\n", "\n    ")
    end
@@ -91,6 +84,14 @@ local function md_2_rst(text)
 
    text = text:gsub("```\n(.-)```",
       function(code) return "\n.. code-block::\n"..tab_block('\n'..code).."\n" end)
+
+   for header, sign in pairs({["^#"] = "=", ["\n#"] = "=", ["\n##"] = "-", ["\n###"] = "~", ["\n####"] = "^"}) do
+      local function rst_header(header)
+         local slug = ".. _#" .. header:lower():gsub(' ', '-') .. ':'
+         return "\n\n" .. string.rep(sign, 79).."\n".. header .."\n" .. string.rep(sign, 79) .. "\n\n"
+      end
+      text = text:gsub(header .. " (.-)[\r\n]", rst_header)
+   end
 
    local function inline_link(label, link)
       label = label:match("%b[]"):sub(2,-2)
