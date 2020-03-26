@@ -83,7 +83,7 @@ local function md_2_rst(text)
       function(lang, code) return "\n.. code-block:: "..lang.." \n"..tab_block('\n'..code).."\n" end)
 
    text = text:gsub("```\n(.-)```",
-      function(code) return "\n.. code-block::\n"..tab_block('\n'..code).."\n" end)
+      function(code) return "\n.. code-block:: bash\n"..tab_block('\n'..code).."\n" end)
 
    for header, sign in pairs({["^#"] = "=", ["\n#"] = "=", ["\n##"] = "-", ["\n###"] = "~", ["\n####"] = "^"}) do
       local function rst_header(header)
