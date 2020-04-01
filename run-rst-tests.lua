@@ -7,11 +7,10 @@ local test_dirs = {
    {'tests/rst-tests/submodule', '.'},
    {'tests/rst-tests/usage', '.'},
    {'tests/rst-tests/annotation', '.'},
-   {'tests/rst-tests/from-md-simple', 'README.md'}
+   {'tests/rst-tests/from-md-simple', 'README.md'},
+   {'tests/rst-tests/from-md', 'README.md'},
    -- Uncomment when @see tag will be implemented
    -- {'tests/rst-tests/complex', '.'},
-   -- Uncomment when md2rst will be fixed with refs
-   -- {'tests/rst-tests/from-md', 'README.md'},
 }
 
 local test_status = {}

@@ -1,79 +1,161 @@
-DDL
-===
+.. _README.md:
 
-DDL module for Tarantool 1.10+
+.. _cartridge-command-line-interface:
 
+################################
+Cartridge Command Line Interface
+################################
+
+.. _contents:
+
+********
 Contents
---------
+********
 
--  `API <#api>`__
+* :ref:`Usage <usage>`
 
-   -  `Set spaces format <#set-spaces-format>`__
-   -  `Check compatibility <#check-compatibility>`__
-   -  `Get spaces format <#get-spaces-format>`__
+  * :ref:`An application's lifecycle <an-applications-lifecycle>`
+  * :ref:`Creating an application from template <creating-an-application-from-template>`
+  * :ref:`Building an application <building-an-application>`
+  * :ref:`Starting/stopping an application locally <startingstopping-an-application-locally>`
+  * :ref:`Packing an application <packing-an-application>`
 
--  `Input data format <#input-data-format>`__
--  `Building and testing <#building-and-testing>`__
+.. _usage:
 
-API
----
+*****
+Usage
+*****
 
--  .. rubric:: Set spaces format
-      :name: set-spaces-format
+For more details, say:
 
-   ``ddl.set_schema(schema)``
+.. code-block:: sh
 
-   -  If no spaces existed before, create them.
-   -  If a space exists, check the space’s format and indexes.
-   -  If the format/indexes are different from those in the database,
-      return an error.
-   -  The module doesn’t drop or alter any indexes.
-   -  Spaces omitted in the DDL are ignored, the module doesn’t check
-      them.
+    cartridge --help
 
-   Return values: ``true`` if no error, otherwise return ``nil, err``
 
--  .. rubric:: Check compatibility
-      :name: check-compatibility
+These commands are supported:
 
-   ``ddl.check_schema(schema)``
+* `create` - create a new application from template;
+* `build` - build the application for local development and testing;
+* `start` - start a Tarantool instance(s);
+* `stop` - stop a Tarantool instance(s);
+* `pack` - pack the application into a distributable bundle.
 
-   -  Check that a ``set_schema()`` call will raise no error.
+.. _an-applications-lifecycle:
 
-   Return values: ``true`` if no error, otherwise return ``nil, err``
+An application's lifecycle
+==========================
 
--  .. rubric:: Get spaces format
-      :name: get-spaces-format
+In a nutshell:
 
-   ``ddl.get_schema()``
+1. :ref:`Create <creating-an-application-from-template>` an application
+   (e.g. `myapp`) from template:
 
-   -  Scan spaces and return the database schema.
 
-Input data format
------------------
+.. code-block:: sh
 
-.. code:: lua
+       cartridge create --name myapp
+       cd ./myapp
 
-   function some_lua_func()
-   end
 
-Schema example
---------------
+2. :ref:`Build <building-an-application>` the application for local development
+   and :ref:`testing <running-end-to-end-tests>`:
 
-.. code:: lua
 
-   function yet_another_func()
-   end
+.. code-block:: sh
 
-Building and testing
---------------------
+       cartridge build
 
-.. code:: bash
 
-   tarantoolctl rocks make
+3. :ref:`Pack <packing-an-application>` the application into a distributable
+   (e.g. into an RPM package):
 
-.. code:: bash
 
-   tarantoolctl rocks install luatest 0.3.0
-   tarantoolctl rocks install luacheck 0.25.0
-   make test -C build.luarocks ARGS="-V"
+.. code-block:: sh
+
+       cartridge pack rpm
+
+
+.. _creating-an-application-from-template:
+
+Creating an application from template
+=====================================
+
+This will create a simple Cartridge application in the `/path/to/<app_name>/`
+directory with:
+
+If you have `git` installed, this will also set up a Git repository with the
+initial commit, tag it with
+`version <https://www.tarantool.io/en/doc/latest/book/cartridge/cartridge_dev/#application-versioning>`_
+0.1.0, and add a `.gitignore` file to the project root.
+
+* application files:
+
+  * `app/roles/custom-role.lua` a sample
+    `custom role <https://www.tarantool.io/en/doc/latest/book/cartridge/cartridge_dev/#cluster-roles>`_
+    with simple HTTP API; can be enabled as `app.roles.custom`
+  * `<app_name>-scm-1.rockspec` file where you can specify application
+    dependencies
+  * `init.lua` file which is the entry point for your application
+
+* :ref:`special files <special-files>` (used to build and pack the application):
+
+  * `cartridge.pre-build`
+  * `cartridge.post-build`
+  * `Dockerfile.build.cartridge`
+  * `Dockerfile.cartridge`
+
+.. _building-an-application:
+
+Building an application
+=======================
+
+.. _building-locally:
+
+Building locally
+----------------
+
+This command runs:
+
+1. `cartridge.pre-build` (or [DEPRECATED] `.cartridge.pre`), if the
+   :ref:`pre-build file <special-files>` exists.
+   This builds the application in the `path` directory.
+2. `tarantoolctl rocks make`, if the :ref:`rockspec file <special-files>` exists.
+   This installs all Lua rocks to the `path` directory.
+
+During step 1 of the `cartridge build` command, `cartridge` builds the application
+inside the application directory -- unlike when building the application as part
+of the `cartridge pack` command, when the application is built in a temporary
+:ref:`build directory <build-directory>` and no build artifacts remain in the
+application directory.
+
+  **NOTE:** An advanced alternative would be to specify build logic in the
+  rockspec as `cmake` commands, like we
+  `do it <https://github.com/tarantool/cartridge/blob/master/cartridge-scm-1.rockspec#L26>`_.
+  for `cartridge`.
+
+(e.g. `tarantoolctl rocks make --chdir ./third_party/proj`).
+For details, see :ref:`special files <special-files>`.
+
+.. _building-in-docker:
+
+Building in Docker
+------------------
+
+To stop one or more running instances, say:
+
+.. _packing-an-application:
+
+Packing an application
+======================
+
+To pack your application, say this in any directory:
+
+.. _build-directory:
+
+Build directory
+---------------
+
+By default, application build is done in a temporary directory in
+`~/.cartridge/tmp/`, so the packaging process doesn't affect the contents
+of your application directory.
