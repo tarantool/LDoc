@@ -75,6 +75,7 @@ local function get_module_info(m)
 end
 
 local function md_2_rst(text)
+   text = text:gsub("%[%!%[.-%]%(.-%)%]%(.-%)", "")
    local function tab_block(code_block)
       return code_block:gsub("\n", "\n    ")
    end
@@ -87,7 +88,7 @@ local function md_2_rst(text)
 
    for header, sign in pairs({["^#"] = "#", ["\n#"] = "#", ["\n##"] = "*", ["\n###"] = "=", ["\n####"] = "-", ["\n#####"] = "^", ["\n######"] = "\""}) do
       local function rst_header(header)
-         local slug = ".. _#" .. header:lower():gsub(' ', '-') .. ':'
+         local slug = "\n.. _" .. header:lower():gsub(' ', '-'):gsub('[\'\"%(%)%[%]%%%!%/\\%@%#,;:]', '') .. ':\n\n'
          local header_length = header:len()
          if header_length > 79 then
              header_length = 79
@@ -97,19 +98,21 @@ local function md_2_rst(text)
             overline = "\n\n" .. string.rep(sign, header_length).."\n"
          end
          local underline = "\n" .. string.rep(sign, header_length) .. "\n\n"
-         return overline .. header .. underline
+         return slug .. overline .. header .. underline
       end
       text = text:gsub(header .. " (.-)[\r\n]", rst_header)
    end
 
    local function inline_link(label, link)
       label = label:match("%b[]"):sub(2,-2)
+      if label:len() > 0 then label = label .. ' ' else label = '' end
       local url, title = link:match("%(<?(.-)>?[ \t]*['\"](.+)['\"]")
-      url  = url or  link:match("%(<?(.-)>?%)") or ""
+      url = url or link:match("%(<?(.-)>?%)") or ""
       if url:sub(1, 1) == '#' then
-         return ('`%s`_'):format(label)
+         url = url:gsub('#', '')
+         return (':ref:`%s<%s>`'):format(label, url)
       end
-      return ('`%s <%s>`_'):format(label, url)
+      return ('`%s<%s>`_'):format(label, url)
    end
 
    text = text:gsub("(%b[])(%b())", inline_link)

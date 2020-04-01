@@ -21,3 +21,5 @@
 function lua_func()
 end
 ```
+
+[![pipeline status](https://gitlab.com/tarantool/cartridge-cli/badges/master/pipeline.svg)](https://gitlab.com/tarantool/cartridge-cli/commits/master)
