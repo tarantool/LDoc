@@ -85,10 +85,19 @@ local function md_2_rst(text)
    text = text:gsub("```\n(.-)```",
       function(code) return "\n.. code-block:: bash\n"..tab_block('\n'..code).."\n" end)
 
-   for header, sign in pairs({["^#"] = "=", ["\n#"] = "=", ["\n##"] = "-", ["\n###"] = "~", ["\n####"] = "^"}) do
+   for header, sign in pairs({["^#"] = "#", ["\n#"] = "#", ["\n##"] = "*", ["\n###"] = "=", ["\n####"] = "-", ["\n#####"] = "^", ["\n######"] = "\""}) do
       local function rst_header(header)
          local slug = ".. _#" .. header:lower():gsub(' ', '-') .. ':'
-         return "\n\n" .. string.rep(sign, 79).."\n".. header .."\n" .. string.rep(sign, 79) .. "\n\n"
+         local header_length = header:len()
+         if header_length > 79 then
+             header_length = 79
+         end
+         local overline = "\n\n"
+         if sign == "#" or sign == "*" then
+            overline = "\n\n" .. string.rep(sign, header_length).."\n"
+         end
+         local underline = "\n" .. string.rep(sign, header_length) .. "\n\n"
+         return overline .. header .. underline
       end
       text = text:gsub(header .. " (.-)[\r\n]", rst_header)
    end
