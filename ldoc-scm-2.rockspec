@@ -2,8 +2,8 @@ package = "ldoc"
 version = "scm-2"
 
 source = {
-  dir="LDoc",
-  url = "git+https://github.com/stevedonovan/LDoc.git"
+  url = "git+https://github.com/tarantool/LDoc.git",
+  branch = "tarantool",
 }
 
 description = {
@@ -55,6 +55,9 @@ build = {
     ["ldoc.builtin.package"] = "ldoc/builtin/package.lua",
     ["ldoc.builtin.string"] = "ldoc/builtin/string.lua",
     ["ldoc.builtin.table"] = "ldoc/builtin/table.lua",
+    ["ldoc.rst"] = "ldoc/rst.lua",
+    ["ldoc.rst.ldoc_ltp"] = "ldoc/rst/ldoc_ltp.lua",
+    ["ldoc.rst_builder"] = "ldoc/rst_builder.lua",
   },
   copy_directories = {'doc','tests'},
   install = {
