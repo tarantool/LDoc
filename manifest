@@ -1,0 +1,32 @@
+commands = {}
+modules = {}
+repository = {
+   ldoc = {
+      ["scm-2"] = {
+         {
+            arch = "rockspec"
+         }
+      }
+   },
+   luafilesystem = {
+      ["1.8.0-1"] = {
+         {
+            arch = "src"
+         }
+      }
+   },
+   markdown = {
+      ["0.33-1"] = {
+         {
+            arch = "src"
+         }
+      }
+   },
+   penlight = {
+      ["1.9.2-1"] = {
+         {
+            arch = "src"
+         }
+      }
+   }
+}
